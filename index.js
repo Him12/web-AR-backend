@@ -39,8 +39,19 @@ app.get("/api/menu/:restaurant_number", async (req, res) => {
 // --- Place Order ---
 app.post("/api/order", async (req, res) => {
   try {
-    const body = req.body;
-    const { data, error } = await supabase.from("orders").insert([body]).select();
+    const body = req.body || {};
+
+    const orderPayload = {
+      restaurant_number: body.restaurant_number || null,
+      table_no: body.table_no || body.table_number || null, // ✅ match your DB column
+      items: body.items || [],
+      total: body.total || 0,
+      payment_mode: body.payment_mode || 'cash',
+      placed_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase.from("orders").insert([orderPayload]).select();
+
     if (error) throw error;
     res.json({ success: true, orderId: data[0].id });
   } catch (err) {
@@ -48,6 +59,7 @@ app.post("/api/order", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`✅ Backend running on port ${port}`);
